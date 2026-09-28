@@ -11,20 +11,61 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soal/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  Future<void> login(WidgetTester tester) async {
+    await tester.enterText(
+      find.byKey(const ValueKey('username')),
+      'Lucy Naibaho',
+    );
+    await tester.enterText(find.byKey(const ValueKey('password')), '124240040');
+    await tester.tap(find.text('Masuk'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('home shows categories and empty history', (tester) async {
     await tester.pumpWidget(const MyApp());
+    await login(tester);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Halo, Lucy Naibaho'), findsOneWidget);
+    expect(find.text('Pengetahuan Umum'), findsOneWidget);
+    expect(find.text('Beranda'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.text('Riwayat (0)'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Belum ada riwayat kuis'), findsOneWidget);
+  });
+
+  testWidgets('finishing a quiz records a result in history', (tester) async {
+    await tester.pumpWidget(const MyApp());
+    await login(tester);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pengetahuan Umum'));
+    await tester.pumpAndSettle();
+
+    const correctAnswers = [
+      'Tokyo',
+      'Asia',
+      'Mars',
+      'Pasifik',
+      'Soekarno dan Mohammad Hatta',
+    ];
+    for (var questionIndex = 0; questionIndex < 5; questionIndex++) {
+      await tester.tap(find.text(correctAnswers[questionIndex]));
+      await tester.pump();
+      await tester.tap(find.text(questionIndex == 4 ? 'Selesai' : 'Lanjut'));
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Luar biasa!'), findsOneWidget);
+    expect(find.text('5 benar dari 5 soal'), findsOneWidget);
+    await tester.tap(find.text('Ke Beranda'));
+    await tester.pumpAndSettle();
+    expect(find.text('Riwayat (1)'), findsOneWidget);
+
+    await tester.tap(find.text('Riwayat (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pengetahuan Umum'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget);
   });
 }
